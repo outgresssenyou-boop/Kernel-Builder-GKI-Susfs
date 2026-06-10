@@ -26,6 +26,9 @@ elif [[ "${VARIANT}" == "KernelSU-Next" ]]; then
 elif [[ "${VARIANT}" == "SukiSU-Ultra" ]]; then
     UPSTREAM_REPO="SukiSU-Ultra/SukiSU-Ultra"
     UPSTREAM_BRANCH="main"
+elif [[ "${VARIANT}" == "ReSukiSU" ]]; then
+    UPSTREAM_REPO="ReSukiSU/ReSukiSU"
+    UPSTREAM_BRANCH="main"
 else
     UPSTREAM_REPO="tiann/KernelSU"
     UPSTREAM_BRANCH="main"
