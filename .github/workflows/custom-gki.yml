@@ -158,7 +158,8 @@ jobs:
         if: inputs.enable_ksu_susfs == true
         env:
           SUSFS_NEXT_URL: https://gitlab.com/shoey63/susfs4ksu.git
-          SUSFS_NEXT_REF: ${{ inputs.susfs_branch }}
+          env:
+          SUSFS_NEXT_REF: ${{ env.SUSFS_BRANCH }}
         run: |
           bash ./scripts/integrate_susfs_next.sh
 
