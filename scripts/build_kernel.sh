@@ -15,16 +15,19 @@ git -C common ls-files -m | xargs -r git -C common update-index --assume-unchang
 # Build method 
 if [ -f "tools/bazel" ]; then
     echo ">>> Modern Kleaf/Bazel ecosystem detected..."
-    tools/bazel run --config=local --config=stamp \
+    
+    # Enforce standard sandboxing to ensure cross-version compatibility 
+    tools/bazel run --config=stamp \
       --action_env=SOURCE_DATE_EPOCH="$OFFICIAL_DATE" \
-      --action_env=STABLE_BUILD_VERSION="g$OFFICIAL_HASH" \
-      --action_env=KLEAF_KERNEL_BUILD_VERSION="g$OFFICIAL_HASH" \
+      --action_env=STABLE_BUILD_VERSION="-g$OFFICIAL_HASH" \
+      --action_env=KLEAF_KERNEL_BUILD_VERSION="-g$OFFICIAL_HASH" \
       --action_env=KLEAF_SKIP_ABI_CHECKS=true \
       --action_env=KLEAF_USER=android-build \
       //common:kernel_aarch64_dist \
       -- \
       --destdir=out/dist
 else
+
     echo ">>> Legacy Hermetic Make ecosystem detected (5.10 or older)..."
     
     mkdir -p out/dist
