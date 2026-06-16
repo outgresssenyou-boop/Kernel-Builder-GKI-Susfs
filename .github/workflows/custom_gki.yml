@@ -85,8 +85,8 @@ jobs:
           sudo swapoff -a
           if [ -f /swapfile ]; then sudo rm -f /swapfile; fi
         
-          echo "=== Allocating 12GB Swap ==="
-          sudo fallocate -l 12G /swapfile
+          echo "=== Allocating 16GB Swap ==="
+          sudo fallocate -l 16G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
