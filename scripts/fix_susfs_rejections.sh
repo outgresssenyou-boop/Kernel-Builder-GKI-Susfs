@@ -81,15 +81,18 @@ fi
 
 # 4. Fix fs/proc/task_mmu.c
 if [ -f "common/fs/proc/task_mmu.c.rej" ]; then
+# 4. Fix fs/proc/task_mmu.c
+if [ -f "common/fs/proc/task_mmu.c.rej" ]; then
   echo ">>> Found task_mmu.c.rej. Applying manual fix..."
   
-  # INJECTION 1: Add the missing header so the compiler knows what the macro is
+  # INJECTION 1: Bulletproof header injection
   if ! grep -q '#include <linux/susfs.h>' common/fs/proc/task_mmu.c; then
-    # Injects the susfs header right after the linux/mm.h header
-    sed -i '/#include <linux\/mm.h>/a #include <linux\/susfs.h>' common/fs/proc/task_mmu.c
+    # Finds the very first #include line and inserts susfs.h directly above it
+    sed -i '0,/^#include/s//#include <linux\/susfs.h>\n&/' common/fs/proc/task_mmu.c
   fi
   
   # INJECTION 2: Inject the SUS_MAP check inside show_smap()
+  # (Keep your existing sed block for this part!)
   sed -i '/static int show_smap(struct seq_file \*m, void \*v)/,/struct vm_area_struct \*vma = v;/ {
     /struct vm_area_struct \*vma = v;/a\
 \
