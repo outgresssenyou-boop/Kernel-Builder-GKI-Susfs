@@ -311,6 +311,7 @@ jobs:
           ls -lah out/final/
 
       - name: Fetch Matching Manager APK
+        if: inputs.enable_ksu_susfs == true
         id: fetch_manager
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -375,9 +376,9 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Manager APK
+        if: inputs.enable_ksu_susfs == true
         uses: actions/upload-artifact@v4
         with:
-          # This dynamically names the zip based on the variant they chose (e.g., ReSukiSU-Manager)
           name: ${{ github.event.inputs.root_manager }}-Manager
           path: manager_apk/*.apk
           if-no-files-found: error
