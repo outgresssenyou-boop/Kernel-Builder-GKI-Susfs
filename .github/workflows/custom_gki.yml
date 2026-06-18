@@ -79,7 +79,7 @@ jobs:
           docker-images: false
           swap-storage: false
 
-      - name: Create Manual 12GB Swap File
+      - name: Create Manual 16GB Swap File
         run: |
           echo "=== Freeing up any existing partial swap ==="
           sudo swapoff -a
