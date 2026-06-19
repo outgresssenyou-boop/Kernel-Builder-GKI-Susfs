@@ -85,10 +85,10 @@ fi
 
 if [ "$WITH_WG" = "true" ]; then
     # Group the dashboard inside an expandable GitHub Actions log section
-    echo "::group::WireGuard & Hardware Crypto Injection Report"
+    echo "::group::WireGuard Integration Report"
     echo ""
     echo "=============================================="
-    echo " WIREGUARD & HARDWARE CRYPTO INJECTION REPORT "
+    echo " WIREGUARD KERNEL INJECTION REPORT            "
     echo "=============================================="
 
     # Locate the definitive compiled configuration source
@@ -111,12 +111,10 @@ if [ "$WITH_WG" = "true" ]; then
     echo ">>> Extracting definitions from: $CONFIG_SRC"
     echo "----------------------------------------------"
 
-    # Target features list to cross-check
+    # Target features list to cross-check (Removed volatile crypto flags)
     REQUIRED_CONFIGS=(
         "CONFIG_WIREGUARD"
         "CONFIG_NET_UDP_TUNNEL"
-        "CONFIG_CRYPTO_CHACHA20_NEON"
-        "CONFIG_CRYPTO_POLY1305_NEON"
         "CONFIG_NETFILTER_XT_MATCH_HASHLIMIT"
         "CONFIG_NETFILTER_XT_MATCH_LENGTH"
         "CONFIG_NETFILTER_XT_MATCH_MARK"
@@ -139,7 +137,7 @@ if [ "$WITH_WG" = "true" ]; then
             printf "  [ WARN ] %-40s = %s (Module Option)\n" "$CFG" "$VAL"
         else
             printf "  [ FAIL ] %-40s = MISSING\n" "$CFG"
-            # Hard-fail only on core engine; degrade optimizations to soft warnings
+            # Hard-fail on core engine and UDP tunneling
             if [ "$CFG" = "CONFIG_WIREGUARD" ] || [ "$CFG" = "CONFIG_NET_UDP_TUNNEL" ]; then
                 FAILED_VALIDATION=1
             fi
@@ -153,6 +151,15 @@ if [ "$WITH_WG" = "true" ]; then
         echo "::endgroup::"
         exit 1
     fi
+    
+    echo "[+] Pipeline successfully validated. Ready for distribution packaging."
+    echo ""
+    echo "::endgroup::"
+fi
+
+cd ..
+echo ">>> Build execution loop completed"
+
     
     echo "[+] Pipeline successfully validated. Ready for distribution packaging."
     echo ""
