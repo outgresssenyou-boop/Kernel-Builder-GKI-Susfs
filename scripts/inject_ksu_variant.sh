@@ -69,6 +69,12 @@ if [ -f "$TARGET_KBUILD" ]; then
         echo "override KSU_COMMIT_SHA := ${SHORT_HASH}"
         echo "override KSU_BRANCH := ${UPSTREAM_BRANCH}"
         echo "override KSU_GIT_BRANCH := ${UPSTREAM_BRANCH}"
+        
+        # --- ReSukiSU Specific Overrides ---
+        echo "override KSU_LOCAL_VERSION := ${CALCULATED_COUNT}"
+        echo "override KSU_VERSION := $((30700 + CALCULATED_COUNT))"
+        echo "override KSU_BRANCH_NAME := ${UPSTREAM_BRANCH}"
+        
         cat "$TARGET_KBUILD"
     } > "${TARGET_KBUILD}.tmp" && mv "${TARGET_KBUILD}.tmp" "$TARGET_KBUILD"
     
@@ -94,6 +100,7 @@ if [ -f "$KSU_VERSION_SCRIPT" ]; then
     mv "${KSU_VERSION_SCRIPT}.tmp" "$KSU_VERSION_SCRIPT"
     chmod +x "$KSU_VERSION_SCRIPT"
 fi
+
 
 echo ">>> Injecting Bazel symlink..."
 DRIVER_ROOT="common/drivers"
