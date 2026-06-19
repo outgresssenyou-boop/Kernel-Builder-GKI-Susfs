@@ -28,6 +28,7 @@ if [ -d "$KSU_DIR" ]; then
     INJECTED_MAKEFLAGS="KSU_GIT_VERSION_VALID=1 KSU_GIT_VERSION=$CALCULATED_COUNT KSU_GIT_TAG=$CALCULATED_TAG"
 else
     INJECTED_MAKEFLAGS=""
+fi
 
 # Build method 
 if [ -f "tools/bazel" ]; then
