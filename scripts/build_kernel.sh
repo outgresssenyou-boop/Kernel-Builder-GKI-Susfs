@@ -160,12 +160,3 @@ fi
 cd ..
 echo ">>> Build execution loop completed"
 
-    
-    echo "[+] Pipeline successfully validated. Ready for distribution packaging."
-    echo ""
-    echo "::endgroup::"
-fi
-
-cd ..
-echo ">>> Build execution loop completed"
-
