@@ -53,19 +53,21 @@ if [ -f "$TARGET_KBUILD" ]; then
     CALCULATED_COUNT=$(git -C "${MANAGER_DIR}" rev-list --count "${UPSTREAM_HASH}" 2>/dev/null || echo "11950")
     CALCULATED_TAG=$(git -C "${MANAGER_DIR}" describe --tags --abbrev=0 "${UPSTREAM_HASH}" 2>/dev/null || echo "v3.2.0")
     
-    # 1. Force the boolean gatekeeper to TRUE
-    sed -i "s/.*KSU_GIT_VERSION_VALID.*:=.*/KSU_GIT_VERSION_VALID := true/g" "$TARGET_KBUILD"
+    # Prepend GNU Make immutable overrides to the very top of Kbuild.
+    # This natively forces Make to ignore all $(shell git...) commands downstream.
+    {
+        echo "override KSU_GIT_VERSION_VALID := 1"
+        echo "override KSU_GIT_VERSION := ${CALCULATED_COUNT}"
+        echo "override KSU_GIT_TAG := ${CALCULATED_TAG}"
+        echo "override KSU_TAG_NAME := ${CALCULATED_TAG}"
+        echo "override KSU_COMMIT_SHA := ${SHORT_HASH}"
+        cat "$TARGET_KBUILD"
+    } > "${TARGET_KBUILD}.tmp" && mv "${TARGET_KBUILD}.tmp" "$TARGET_KBUILD"
     
-    # 2. Overwrite the dynamic $(shell git...) commands with our static text
-    sed -i "s/.*KSU_GIT_VERSION[[:space:]]*:=.*/KSU_GIT_VERSION := ${CALCULATED_COUNT}/g" "$TARGET_KBUILD"
-    sed -i "s/.*KSU_GIT_TAG[[:space:]]*:=.*/KSU_GIT_TAG := ${CALCULATED_TAG}/g" "$TARGET_KBUILD"
-    sed -i "s/.*KSU_TAG_NAME[[:space:]]*:=.*/KSU_TAG_NAME := ${CALCULATED_TAG}/g" "$TARGET_KBUILD"
-    sed -i "s/.*KSU_COMMIT_SHA[[:space:]]*:=.*/KSU_COMMIT_SHA := ${SHORT_HASH}/g" "$TARGET_KBUILD"
-    
-    echo "  -> Gatekeeper: Forced TRUE"
-    echo "  -> Hardcoded KSU_GIT_VERSION: ${CALCULATED_COUNT}"
-    echo "  -> Hardcoded Tags: ${CALCULATED_TAG}"
-    echo "  -> Hardcoded SHA: ${SHORT_HASH}"
+    echo "  -> Prepend Immutable Gatekeeper: TRUE"
+    echo "  -> Prepend Immutable Count: ${CALCULATED_COUNT}"
+    echo "  -> Prepend Immutable Tag: ${CALCULATED_TAG}"
+    echo "  -> Prepend Immutable SHA: ${SHORT_HASH}"
 fi
 
 echo ">>> Injecting Bazel symlink..."
