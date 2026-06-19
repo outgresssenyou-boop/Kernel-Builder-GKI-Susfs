@@ -45,9 +45,24 @@ SHORT_HASH=${UPSTREAM_HASH:0:7}
 # Export the exact sync commit to the GitHub Env for the artifact fetcher
 echo "UPSTREAM_HASH=${UPSTREAM_HASH}" >> $GITHUB_ENV
 
-echo ">>> Enforcing CI symmetry (locking version strings to ${SHORT_HASH})..."
-sed -i "s/rev-list --count HEAD/rev-list --count ${UPSTREAM_HASH}/g" "${MANAGER_DIR}/kernel/Kbuild" 2>/dev/null || true
-sed -i "s/rev-list --count \$(REPO_BRANCH)/rev-list --count ${UPSTREAM_HASH}/g" "${MANAGER_DIR}/kernel/Kbuild" 2>/dev/null || true
+echo ">>> Severing Kbuild Git dependencies for Kleaf Sandbox..."
+TARGET_KBUILD="${MANAGER_DIR}/kernel/Kbuild"
+
+if [ -f "$TARGET_KBUILD" ]; then
+    # Calculate the exact values outside the sandbox
+    CALCULATED_COUNT=$(git -C "${MANAGER_DIR}" rev-list --count "${UPSTREAM_HASH}" 2>/dev/null || echo "11950")
+    CALCULATED_TAG=$(git -C "${MANAGER_DIR}" describe --tags --abbrev=0 "${UPSTREAM_HASH}" 2>/dev/null || echo "v3.2.0")
+    
+    # Overwrite the dynamic $(shell git...) commands with our static text (ignores leading whitespace)
+    sed -i "s/^[[:space:]]*KSU_GIT_VERSION[[:space:]]*:=.*/KSU_GIT_VERSION := ${CALCULATED_COUNT}/g" "$TARGET_KBUILD"
+    sed -i "s/^[[:space:]]*KSU_GIT_TAG[[:space:]]*:=.*/KSU_GIT_TAG := ${CALCULATED_TAG}/g" "$TARGET_KBUILD"
+    sed -i "s/^[[:space:]]*KSU_TAG_NAME[[:space:]]*:=.*/KSU_TAG_NAME := ${CALCULATED_TAG}/g" "$TARGET_KBUILD"
+    sed -i "s/^[[:space:]]*KSU_COMMIT_SHA[[:space:]]*:=.*/KSU_COMMIT_SHA := ${SHORT_HASH}/g" "$TARGET_KBUILD"
+    
+    echo "  -> Hardcoded KSU_GIT_VERSION: ${CALCULATED_COUNT}"
+    echo "  -> Hardcoded Tags: ${CALCULATED_TAG}"
+    echo "  -> Hardcoded SHA: ${SHORT_HASH}"
+fi
 
 echo ">>> Injecting Bazel symlink..."
 DRIVER_ROOT="common/drivers"
