@@ -9,8 +9,9 @@ on:
         type: choice
         options:
           - stable
-          - dynamic
-
+          - dynamic 
+          - main
+          
       build_name:
         description: "Build Name"
         required: true
@@ -28,24 +29,25 @@ on:
         options:
           - KernelSU-Next
           - SukiSU-Ultra
+          - BakaSU
           - ReSukiSU
           - KernelSU
           - Stock
 
       enable_ksu_susfs:
-        description: "Integrate Root Manager and SUSFS?"
+        description: "Integrate Root Manager and SUSFS? (Select main channel for kernel root without susfs)"
         required: false
         type: boolean
-        default: true
-        
-      enable_nomount:
-        description: "Inject nomount VFS module"
-        required: false
-        type: boolean
-        default: false
+        default: true      
         
       enable_net_opts:
         description: "Inject Network Optimizations (BBR, CAKE, FastOpen, ECN)"
+        required: false
+        type: boolean
+        default: false
+
+      enable_nomount:
+        description: "Inject nomount VFS module"
         required: false
         type: boolean
         default: false
@@ -82,8 +84,8 @@ jobs:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
-          tool-cache: true
-          android: true
+          preinstalled-runtimes: true
+          android: false
           dotnet: true
           haskell: false
           large-packages: false
@@ -196,6 +198,11 @@ jobs:
               echo "TARGET_BRANCH=main" >> $GITHUB_ENV
               echo "WORKFLOW_FILE=build-manager.yml" >> $GITHUB_ENV
               ;;
+            "BakaSU")
+              echo "UPSTREAM_REPO=Baka-SU/BakaSU" >> $GITHUB_ENV
+              echo "TARGET_BRANCH=main" >> $GITHUB_ENV
+              echo "WORKFLOW_FILE=build-manager.yml" >> $GITHUB_ENV
+              ;;
             "ReSukiSU")
               echo "UPSTREAM_REPO=ReSukiSU/ReSukiSU" >> $GITHUB_ENV
               echo "TARGET_BRANCH=main" >> $GITHUB_ENV
@@ -212,6 +219,8 @@ jobs:
           if [ "${{ inputs.build_channel }}" == "dynamic" ]; then
             echo ">>> Routing ${{ inputs.root_manager }} to Automated Dynamic Transplant..."
             echo "USE_DYNAMIC_TRANSPLANT=true" >> $GITHUB_ENV
+            echo "KSU_VARIANT_REPO_URL=https://github.com/shoey63/${{ inputs.root_manager }}.git" >> $GITHUB_ENV
+            echo "KSU_VARIANT_REF=stable" >> $GITHUB_ENV
             echo "SUSFS_REPO_URL=https://gitlab.com/simonpunk/susfs4ksu.git" >> $GITHUB_ENV
           else
             echo ">>> Routing ${{ inputs.root_manager }} to Safe Fallback Fork (Stable branch)..."
@@ -291,7 +300,7 @@ jobs:
           bash ./scripts/inject_ksu_variant.sh "${{ inputs.root_manager }}"
 
       - name: Integrate SUSFS common-side
-        if: inputs.root_manager != 'Stock' && inputs.enable_ksu_susfs == true
+        if: inputs.root_manager != 'Stock' && inputs.enable_ksu_susfs == true && inputs.build_channel != 'main'
         env:
           SUSFS_NEXT_URL: ${{ env.SUSFS_REPO_URL }}
           SUSFS_NEXT_REF: ${{ env.SUSFS_BRANCH }}
@@ -299,7 +308,7 @@ jobs:
           bash ./scripts/integrate_susfs.sh
 
       - name: Fix SUSFS Patch Rejections
-        if: inputs.root_manager != 'Stock' && inputs.enable_ksu_susfs == true
+        if: inputs.root_manager != 'Stock' && inputs.enable_ksu_susfs == true && inputs.build_channel != 'main'
         run: |
           bash ./scripts/fix_susfs_rejections.sh
 
@@ -317,16 +326,12 @@ jobs:
           ENABLE_NOMOUNT: ${{ inputs.enable_nomount }}
         run: |
           if [ "$ENABLE_NOMOUNT" = "true" ]; then
-            echo ">>> Fetching pinned nomount source..."
+            echo ">>> Fetching latest nomount source from master branch..."
             NOMOUNT_DIR="$(pwd)/tools/user_source/fs/nomount"
-            NOMOUNT_COMMIT="db76155b6c8073dd02b8f7ecf6cdae4a1547e157"
             
-            # Export to GITHUB_ENV so the Artifact fetcher can use it later
-            echo "NOMOUNT_COMMIT=${NOMOUNT_COMMIT}" >> $GITHUB_ENV
-            
-            # Force overwrite the existing .c and .h files with the pinned working versions
-            curl -sSL "https://raw.githubusercontent.com/maxsteeel/nomount/${NOMOUNT_COMMIT}/kernel/src/nomount.c" -o "$NOMOUNT_DIR/nomount.c"
-            curl -sSL "https://raw.githubusercontent.com/maxsteeel/nomount/${NOMOUNT_COMMIT}/kernel/src/nomount.h" -o "$NOMOUNT_DIR/nomount.h"
+            # Fetch directly from the master branch
+            curl -sSL "https://raw.githubusercontent.com/maxsteeel/nomount/master/kernel/src/nomount.c" -o "$NOMOUNT_DIR/nomount.c"
+            curl -sSL "https://raw.githubusercontent.com/maxsteeel/nomount/master/kernel/src/nomount.h" -o "$NOMOUNT_DIR/nomount.h"
           fi
 
           echo ">>> Injecting user source files into common tree..."
@@ -345,7 +350,7 @@ jobs:
         shell: bash
 
       - name: Apply User Patches
-        if: inputs.enable_nomount == true || inputs.enable_net_opts == true
+        if: inputs.enable_net_opts == true
         run: |
           PATCH_DIR="$(pwd)/tools/user_patches"
           
@@ -494,31 +499,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo ">>> Fetching NoMount metamodule for pinned commit ${NOMOUNT_COMMIT}..."
+          echo ">>> Fetching latest stable NoMount release module..."
           mkdir -p nomount_extracted
           
-          # 1. Query GitHub API for the specific commit's action run
-          RUNS_JSON=$(curl -s -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/maxsteeel/nomount/actions/runs?head_sha=${NOMOUNT_COMMIT}&status=success")
+          # 1. Query GitHub API for the latest release
+          RELEASE_JSON=$(curl -s -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/maxsteeel/nomount/releases/latest")
           
-          RUN_ID=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[0].id // empty')
+          # 2. Extract the browser_download_url for the zip asset
+          DOWNLOAD_URL=$(echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name | endswith(".zip")) | .browser_download_url' | head -n 1)
           
-          if [ -z "$RUN_ID" ]; then
-            echo "[-] Error: Could not find a successful Action run for commit $NOMOUNT_COMMIT."
-            exit 1
-          fi
-          
-          echo "  -> Found successful Run ID: $RUN_ID"
-          
-          # 2. Locate the specific NoMount artifact download URL
-          ARTIFACTS_JSON=$(curl -s -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/maxsteeel/nomount/actions/runs/${RUN_ID}/artifacts")
-          
-          DOWNLOAD_URL=$(echo "$ARTIFACTS_JSON" | jq -r '.artifacts[] | select(.name | startswith("NoMount-")) | .archive_download_url' | head -n 1)
-          
-          if [ -n "$DOWNLOAD_URL" ]; then
-            echo "  -> Downloading Artifact from: $DOWNLOAD_URL"
-            curl -sL -H "Authorization: token $GH_TOKEN" -o temp_module.zip "$DOWNLOAD_URL"
+          if [ -n "$DOWNLOAD_URL" ] && [ "$DOWNLOAD_URL" != "null" ]; then
+            echo "  -> Found latest release artifact. Downloading from: $DOWNLOAD_URL"
+            curl -sL -o temp_module.zip "$DOWNLOAD_URL"
             
             echo "  -> Extracting module..."
             unzip -q temp_module.zip -d nomount_extracted/
@@ -526,7 +519,7 @@ jobs:
             echo "  -> Success! Extracted contents:"
             ls -la nomount_extracted/
           else
-            echo "[-] Failed to find NoMount artifact zip in run $RUN_ID."
+            echo "[-] Failed to find a valid zip artifact in the latest release."
             exit 1
           fi
         shell: bash
