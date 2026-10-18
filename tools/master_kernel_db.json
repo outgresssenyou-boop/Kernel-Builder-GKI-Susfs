@@ -1107,31 +1107,36 @@
     },
     {
       "kernel": "5.10.264",
-      "date": "lts",
+      "date": "2026-10",
       "android_version": "android12"
     },
     {
       "kernel": "5.10.265",
-      "date": "lts",
+      "date": "2026-10",
       "android_version": "android12"
     },
     {
       "kernel": "5.10.266",
-      "date": "lts",
+      "date": "2026-10",
       "android_version": "android12"
     },
     {
       "kernel": "5.10.267",
-      "date": "lts",
+      "date": "2026-10",
       "android_version": "android12"
     },
     {
       "kernel": "5.10.268",
-      "date": "lts",
+      "date": "2026-10",
       "android_version": "android12"
     },
     {
       "kernel": "5.10.269",
+      "date": "2026-10",
+      "android_version": "android12"
+    },
+    {
+      "kernel": "5.10.270",
       "date": "lts",
       "android_version": "android12"
     }
@@ -3690,6 +3695,16 @@
     },
     {
       "kernel": "6.12.94",
+      "date": "lts",
+      "android_version": "android16"
+    },
+    {
+      "kernel": "6.12.95",
+      "date": "lts",
+      "android_version": "android16"
+    },
+    {
+      "kernel": "6.12.96",
       "date": "lts",
       "android_version": "android16"
     }
